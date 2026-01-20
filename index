@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akordijärgnevuste harjutamine</title>
+    
+    <!-- ABCjs -->
+    <script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
+    
+    <!-- Tone.js -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Georgia', 'Crimson Pro', serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 2rem;
+            border: 3px solid #2c3e50;
+        }
+
+        .header {
+            border-bottom: 3px solid #2c3e50;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin: 0.5rem 0 0 0;
+        }
+
+        .score-bar {
+            background: #ecf0f1;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score-item {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .score-left {
+            color: #2c3e50;
+        }
+
+        .score-right {
+            color: #27ae60;
+        }
+
+        .notation-container {
+            background: #ffffff;
+            border: 2px solid #34495e;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            min-height: 150px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Georgia', serif;
+            min-width: 200px;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-play-chord {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-play-progression {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .btn-pause {
+            background: #e67e22;
+            color: white;
+        }
+
+        .btn-check {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-show-answer {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-next {
+            background: #3498db;
+            color: white;
+            width: 100%;
+        }
+
+        button:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .input-form {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid #dee2e6;
+            margin-bottom: 1rem;
+        }
+
+        .form-title {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+            font-size: 1.2rem;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            font-family: 'Georgia', serif;
+        }
+
+        .feedback {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .feedback-correct {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+
+        .feedback-incorrect {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+
+        .feedback-answer {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+
+        .feedback h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.2rem;
+        }
+
+        .feedback p {
+            margin: 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Akordijärgnevuste harjutamine</h1>
+            <p class="subtitle" id="progression-info">
+                Järgnevus 1/3 · Helistik: C duur
+            </p>
+        </div>
+
+        <!-- Mode Selection -->
+        <div style="background: #ecf0f1; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <h3 style="margin: 0 0 0.75rem 0; color: #2c3e50; font-size: 1.1rem;">Harjutuse režiim:</h3>
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 1rem;">
+                    <input type="radio" name="mode" value="single" checked onchange="changeMode()" style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>Üks akord korraga</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 1rem;">
+                    <input type="radio" name="mode" value="full" onchange="changeMode()" style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>Terve järgnevus</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 1rem;">
+                    <input type="radio" name="mode" value="show-notation" onchange="changeMode()" style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>Näita kogu järgnevus</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Score Bar -->
+        <div class="score-bar">
+            <div class="score-item score-left" id="chord-counter">
+                Akord 1 / 5
+            </div>
+            <div class="score-item score-right" id="score-display">
+                Skoor: 0 / 0
+            </div>
+        </div>
+
+        <!-- Music Notation (initially hidden) -->
+        <div class="notation-container hidden" id="notation-wrapper">
+            <div id="notation"></div>
+        </div>
+
+        <!-- Audio Controls -->
+        <div class="controls">
+            <button class="btn-play-chord" id="btn-play-chord" onclick="playCurrentChord()">
+                🔊 Mängi akordi <span id="current-chord-num">1</span>
+            </button>
+            <button class="btn-play-progression" id="btn-play-progression" onclick="playProgression()">
+                🎵 Mängi tervet järgnevust
+            </button>
+            <button class="btn-pause hidden" id="btn-pause" onclick="togglePause()">
+                <span id="pause-btn-text">⏸️ Paus</span>
+            </button>
+        </div>
+
+        <!-- Input Form - Single Chord Mode -->
+        <div class="input-form" id="single-mode-form">
+            <h3 class="form-title">Sisesta akord <span id="input-chord-num">1</span>:</h3>
+            
+            <div class="input-row">
+                <div class="input-group">
+                    <label>Bassiheli (nt C, c, fis, B):</label>
+                    <input type="text" id="input-bass" placeholder="C">
+                </div>
+                
+                <div class="input-group">
+                    <label>Akord (nt I, IV6, V7, i, iv):</label>
+                    <input type="text" id="input-roman" placeholder="I">
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn-check" id="btn-check" onclick="checkAnswer()">
+                    ✓ Kontrolli vastust
+                </button>
+                <button class="btn-show-answer" onclick="toggleAnswer()">
+                    <span id="answer-btn-text">👁️ Näita vastust</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Input Form - Full Progression Mode -->
+        <div class="input-form hidden" id="full-mode-form">
+            <h3 class="form-title">Sisesta kõik akordid:</h3>
+            
+            <div id="all-chords-inputs" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                <!-- Dynamically generated inputs -->
+            </div>
+
+            <div class="controls">
+                <button class="btn-check" onclick="checkFullProgression()">
+                    ✓ Kontrolli kõiki
+                </button>
+            </div>
+        </div>
+
+        <!-- Feedback -->
+        <div id="feedback" class="feedback hidden"></div>
+
+        <!-- Show Answer -->
+        <div id="show-answer" class="feedback feedback-answer hidden">
+            <h4>Õige vastus:</h4>
+            <p id="answer-text"></p>
+        </div>
+
+        <!-- Next Button -->
+        <button class="btn-next hidden" id="btn-next" onclick="handleNext()">
+            → Järgmine akord
+        </button>
+    </div>
+
+    <script>
+        // Järgnevuste andmebaas
+        const PROGRESSIONS = [
+            {
+                id: 1,
+                key: 'C',
+                chords: [
+                    { roman: 'I', bass: 'C', notes: ['C2', 'C4', 'E4', 'G4'] },
+                    { roman: 'IV', bass: 'F', notes: ['F2', 'C4', 'F4', 'A4'] },
+                    { roman: 'V', bass: 'G', notes: ['G2', 'B3', 'D4', 'G4'] },
+                    { roman: 'I', bass: 'C', notes: ['C2', 'C4', 'E4', 'G4'] },
+                    { roman: 'IV', bass: 'F', notes: ['F2', 'C4', 'F4', 'A4'] },
+                    { roman: 'V', bass: 'G', notes: ['G2', 'B3', 'D4', 'G4'] },
+                    { roman: 'I', bass: 'C', notes: ['C2', 'C4', 'E4', 'G4'] }
+                ],
+                abc: `X:1
+M:2/2
+L:1/2
+K:C clef=bass
+"_I"C, "_IV"F, | "_V"G, "_I"C, | "_IV"F, "_V"G, | "_I"C,2 |]`
+            },
+            {
+                id: 2,
+                key: 'G',
+                chords: [
+                    { roman: 'I', bass: 'G', notes: ['G2', 'D4', 'G4', 'B4'] },
+                    { roman: 'I6', bass: 'B', notes: ['B2', 'D4', 'G4', 'D5'] },
+                    { roman: 'IV', bass: 'C', notes: ['C3', 'E4', 'G4', 'C5'] },
+                    { roman: 'IV6', bass: 'E', notes: ['E2', 'C4', 'G4', 'C5'] },
+                    { roman: 'V', bass: 'D', notes: ['D2', 'D4', 'F#4', 'A4'] },
+                    { roman: 'V6', bass: 'F#', notes: ['F#2', 'D4', 'A4'] },
+                    { roman: 'I', bass: 'G', notes: ['G2', 'B3', 'D4', 'G4'] }
+                ],
+                abc: `X:2
+M:2/2
+L:1/2
+K:G clef=bass
+"_I"G, "_I6"B, | "_IV"C "_IV6"E, | "_V"D, "_V6"^F, | "_I"G,2 |]`
+            },
+            {
+                id: 3,
+                key: 'F',
+                chords: [
+                    { roman: 'I', bass: 'F', notes: ['F1', 'F4', 'A4', 'C5'] },
+                    { roman: 'IV', bass: 'Bb', notes: ['Bb0', 'F4', 'Bb4', 'D5'] },
+                    { roman: 'V', bass: 'C', notes: ['C1', 'E4', 'G4', 'C5'] },
+                    { roman: 'VI', bass: 'D', notes: ['D1', 'D4', 'F4', 'A4'] },
+                    { roman: 'I', bass: 'F', notes: ['F1', 'C4', 'F4', 'A4'] },
+                    { roman: 'V', bass: 'C', notes: ['C1', 'C4', 'E4', 'G4'] },
+                    { roman: 'I', bass: 'F', notes: ['F1', 'C4', 'F4', 'A4'] }
+                ],
+                abc: `X:3
+M:2/2
+L:1/2
+K:F clef=bass
+"_I"F, "_IV"_B,, | "_V"C, "_VI"D, | "_I"F, "_V"C, | "_I"F,2 |]`
+            },
+            {
+                id: 4,
+                key: 'a',
+                minor: true,
+                chords: [
+                    { roman: 'i', bass: 'A', notes: ['A2', 'C4', 'E4', 'A4'] },
+                    { roman: 'III', bass: 'C', notes: ['C2', 'C4', 'E4', 'G4'] },
+                    { roman: 'VI', bass: 'F', notes: ['F2', 'C4', 'F4', 'A4'] },
+                    { roman: 'iv', bass: 'D', notes: ['D2', 'F4', 'A4', 'D5'] },
+                    { roman: 'K64', bass: 'E', notes: ['E2', 'E4', 'A4', 'C5'] },
+                    { roman: 'V', bass: 'E', notes: ['E2', 'E4', 'G#4', 'B4'] },
+                    { roman: 'i', bass: 'A', notes: ['A2', 'C4', 'A4'] }
+                ],
+                abc: `X:4
+M:2/2
+L:1/2
+K:Am clef=bass
+"_i"A, "_III"C, | "_VI"F, "_iv"D, | "_K64"E, "_V"E, | "_i"A,2 |]`
+            },
+            {
+                id: 5,
+                key: 'e',
+                minor: true,
+                chords: [
+                    { roman: 'i', bass: 'E', notes: ['E2', 'E4', 'G4', 'B4'] },
+                    { roman: 'VI', bass: 'C', notes: ['C2', 'E4', 'G4', 'C5'] },
+                    { roman: 'iv', bass: 'A', notes: ['A1', 'E4', 'A4', 'C5'] },
+                    { roman: 'iv6', bass: 'C', notes: ['C2', 'E4', 'A4', 'E5'] },
+                    { roman: 'V', bass: 'B', notes: ['B1', 'F#4', 'B4', 'D#5'] },
+                    { roman: 'V6', bass: 'D#', notes: ['D#2', 'F#4', 'B4', 'F#5'] },
+                    { roman: 'i', bass: 'E', notes: ['E2', 'G4', 'B4', 'E5'] }
+                ],
+                abc: `X:5
+M:2/2
+L:1/2
+K:Em clef=bass
+"_i"E, "_VI"C, | "_iv"A,, "_iv6"C, | "_V"B,, "_V6"^D, | "_i"E,2 |]`
+            },
+            {
+                id: 6,
+                key: 'd',
+                minor: true,
+                chords: [
+                    { roman: 'i', bass: 'D', notes: ['D2', 'F4', 'A4', 'D5'] },
+                    { roman: 'iv', bass: 'G', notes: ['G2', 'G4', 'Bb4', 'D5'] },
+                    { roman: 'i6', bass: 'F', notes: ['F2', 'D4', 'A4', 'D5'] },
+                    { roman: 'V64', bass: 'E', notes: ['E2', 'E4', 'A4', 'C#5'] },
+                    { roman: 'i', bass: 'D', notes: ['D2', 'F4', 'A4', 'D5'] },
+                    { roman: 'iv', bass: 'G', notes: ['G2', 'D4', 'G4', 'Bb4'] },
+                    { roman: 'K64', bass: 'A', notes: ['A2', 'D4', 'F4', 'A4'] },
+                    { roman: 'V', bass: 'A', notes: ['A1', 'E4', 'A4', 'C#5'] },
+                    { roman: 'i', bass: 'D', notes: ['D2', 'F4', 'A4', 'D5'] }
+                ],
+                abc: `X:6
+M:2/2
+L:1/2
+K:Dm clef=bass
+"_i"D, "_iv"G, | "_i6"F, "_V64"E, | "_i"D, "_iv"G, | "_K64"A, "_V"A,, | "_i"D,2 |]`
+            }
+        ];
+
+        // State
+        let currentProgression = 0;
+        let currentChordIndex = 0;
+        let score = { correct: 0, total: 0 };
+        let synth = null;
+        let isPlaying = false;
+        let isPaused = false;
+        let currentMode = 'single'; // 'single' or 'full'
+        let playbackTimeoutId = null;
+
+        // Convert Tone.js note (e.g., "C2", "F#3", "Bb4") to Estonian notation
+        function toEstonianNotation(toneNote) {
+            const match = toneNote.match(/^([A-G][b#]?)(\d+)$/);
+            if (!match) return toneNote;
+            
+            const [, note, octave] = match;
+            const octNum = parseInt(octave);
+            
+            // Convert note name
+            let estonianNote = note;
+            
+            // Handle B/H (B natural in English = H in Estonian)
+            if (note === 'B') {
+                estonianNote = 'H';
+            } else if (note === 'Bb') {
+                estonianNote = 'B';  // Bb in English = B in Estonian
+            } else if (note.includes('#')) {
+                // C# → cis, F# → fis
+                const baseNote = note[0];
+                if (baseNote === 'B') {
+                    estonianNote = 'his';  // B# = his
+                } else {
+                    estonianNote = baseNote + 'is';
+                }
+            } else if (note.includes('b') && note !== 'Bb') {
+                // Db → des, Eb → es, Ab → as
+                const baseNote = note[0];
+                if (baseNote === 'E') {
+                    estonianNote = 'es';
+                } else if (baseNote === 'A') {
+                    estonianNote = 'as';
+                } else {
+                    estonianNote = baseNote + 'es';
+                }
+            }
+            
+            // Apply octave rules
+            // C1 = kontraoktav = C1
+            // C2 = suur oktav = C (capital)
+            // C3 = väike oktav = c (lowercase)
+            // C4 = 1-jooneline = c1
+            // C5 = 2-jooneline = c2
+            
+            if (octNum === 1) {
+                return estonianNote.toUpperCase() + '1';
+            } else if (octNum === 2) {
+                return estonianNote.toUpperCase();
+            } else if (octNum === 3) {
+                return estonianNote.toLowerCase();
+            } else if (octNum >= 4) {
+                return estonianNote.toLowerCase() + (octNum - 3);
+            }
+            
+            return toneNote;
+        }
+
+        // Update bass notation in progressions to Estonian format
+        PROGRESSIONS.forEach(prog => {
+            prog.chords.forEach(chord => {
+                // Get bass note from notes array (first element)
+                const bassNote = chord.notes[0];
+                chord.estonianBass = toEstonianNotation(bassNote);
+            });
+        });
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize Tone.js Sampler with piano samples
+            synth = new Tone.Sampler({
+                urls: {
+                    A0: "A0.mp3",
+                    C1: "C1.mp3",
+                    "D#1": "Ds1.mp3",
+                    "F#1": "Fs1.mp3",
+                    A1: "A1.mp3",
+                    C2: "C2.mp3",
+                    "D#2": "Ds2.mp3",
+                    "F#2": "Fs2.mp3",
+                    A2: "A2.mp3",
+                    C3: "C3.mp3",
+                    "D#3": "Ds3.mp3",
+                    "F#3": "Fs3.mp3",
+                    A3: "A3.mp3",
+                    C4: "C4.mp3",
+                    "D#4": "Ds4.mp3",
+                    "F#4": "Fs4.mp3",
+                    A4: "A4.mp3",
+                    C5: "C5.mp3",
+                    "D#5": "Ds5.mp3",
+                    "F#5": "Fs5.mp3",
+                    A5: "A5.mp3",
+                    C6: "C6.mp3",
+                    "D#6": "Ds6.mp3",
+                    "F#6": "Fs6.mp3",
+                    A6: "A6.mp3",
+                    C7: "C7.mp3",
+                    "D#7": "Ds7.mp3",
+                    "F#7": "Fs7.mp3",
+                    A7: "A7.mp3",
+                    C8: "C8.mp3"
+                },
+                release: 1,
+                baseUrl: "https://tonejs.github.io/audio/salamander/"
+            }).toDestination();
+
+            // Render initial notation
+            renderNotation();
+            updateUI();
+        });
+
+        function renderNotation() {
+            const progression = PROGRESSIONS[currentProgression];
+            ABCJS.renderAbc('notation', progression.abc, {
+                responsive: 'resize',
+                staffwidth: 600
+            });
+        }
+
+        function updateUI() {
+            const progression = PROGRESSIONS[currentProgression];
+            const modeText = progression.minor ? 'moll' : 'duur';
+            
+            document.getElementById('progression-info').textContent = 
+                `Järgnevus ${currentProgression + 1}/${PROGRESSIONS.length} · Helistik: ${progression.key} ${modeText}`;
+            
+            if (currentMode === 'single') {
+                document.getElementById('chord-counter').textContent = 
+                    `Akord ${currentChordIndex + 1} / ${progression.chords.length}`;
+                
+                document.getElementById('current-chord-num').textContent = currentChordIndex + 1;
+                document.getElementById('input-chord-num').textContent = currentChordIndex + 1;
+                
+                // Update answer display
+                const currentChord = progression.chords[currentChordIndex];
+                document.getElementById('answer-text').textContent = 
+                    `Bassiheli: ${currentChord.estonianBass} · Akord: ${currentChord.roman}`;
+            } else {
+                // Both 'full' and 'show-notation' modes show full progression info
+                document.getElementById('chord-counter').textContent = 
+                    `Terve järgnevus (${progression.chords.length} akordi)`;
+            }
+            
+            document.getElementById('score-display').textContent = 
+                `Skoor: ${score.correct} / ${score.total}`;
+        }
+
+        async function playCurrentChord() {
+            if (isPlaying || !synth) return;
+            
+            await Tone.start();
+            isPlaying = true;
+            document.getElementById('btn-play-chord').disabled = true;
+            document.getElementById('btn-play-progression').disabled = true;
+            
+            const progression = PROGRESSIONS[currentProgression];
+            const chord = progression.chords[currentChordIndex];
+            
+            // Separate bass and treble notes
+            const bassNotes = chord.notes.filter(n => n.includes('1') || n.includes('2'));
+            const trebleNotes = chord.notes.filter(n => n.includes('3') || n.includes('4') || n.includes('5'));
+            
+            // Play bass with shorter duration (less reverb)
+            if (bassNotes.length > 0) {
+                synth.triggerAttackRelease(bassNotes, '4n');
+            }
+            
+            // Play treble with normal duration
+            if (trebleNotes.length > 0) {
+                synth.triggerAttackRelease(trebleNotes, '1n');
+            }
+            
+            setTimeout(() => {
+                isPlaying = false;
+                document.getElementById('btn-play-chord').disabled = false;
+                document.getElementById('btn-play-progression').disabled = false;
+            }, 1000);
+        }
+
+        async function playProgression() {
+            if (isPlaying || !synth) return;
+            
+            await Tone.start();
+            isPlaying = true;
+            isPaused = false;
+            document.getElementById('btn-play-chord').disabled = true;
+            document.getElementById('btn-play-progression').disabled = true;
+            document.getElementById('btn-pause').classList.remove('hidden');
+            document.getElementById('pause-btn-text').innerHTML = '⏸️ Paus';
+            
+            const progression = PROGRESSIONS[currentProgression];
+            
+            // Stop and clear any existing transport events
+            Tone.Transport.stop();
+            Tone.Transport.cancel();
+            Tone.Transport.position = 0;
+            
+            // Schedule each chord using Transport
+            progression.chords.forEach((chord, index) => {
+                const time = index * 1.2;
+                
+                // Separate bass and treble notes
+                const bassNotes = chord.notes.filter(n => n.includes('1') || n.includes('2'));
+                const trebleNotes = chord.notes.filter(n => n.includes('3') || n.includes('4') || n.includes('5'));
+                
+                // Schedule bass with shorter duration
+                if (bassNotes.length > 0) {
+                    Tone.Transport.schedule((t) => {
+                        synth.triggerAttackRelease(bassNotes, '4n', t);
+                    }, time);
+                }
+                
+                // Schedule treble with normal duration
+                if (trebleNotes.length > 0) {
+                    Tone.Transport.schedule((t) => {
+                        synth.triggerAttackRelease(trebleNotes, '1n', t);
+                    }, time);
+                }
+            });
+            
+            // Start transport
+            Tone.Transport.start();
+            
+            // Set timeout to reset after progression finishes
+            playbackTimeoutId = setTimeout(() => {
+                Tone.Transport.stop();
+                Tone.Transport.cancel();
+                isPlaying = false;
+                isPaused = false;
+                document.getElementById('btn-play-chord').disabled = false;
+                document.getElementById('btn-play-progression').disabled = false;
+                document.getElementById('btn-pause').classList.add('hidden');
+                playbackTimeoutId = null;
+            }, progression.chords.length * 1200);
+        }
+
+        function togglePause() {
+            if (isPaused) {
+                // Resume playback
+                Tone.Transport.start();
+                isPaused = false;
+                document.getElementById('pause-btn-text').innerHTML = '⏸️ Paus';
+            } else {
+                // Pause playback
+                Tone.Transport.pause();
+                isPaused = true;
+                document.getElementById('pause-btn-text').innerHTML = '▶️ Jätka';
+            }
+        }
+
+        function checkAnswer() {
+            const progression = PROGRESSIONS[currentProgression];
+            const correctChord = progression.chords[currentChordIndex];
+            
+            const userBass = document.getElementById('input-bass').value.trim();
+            const userRoman = document.getElementById('input-roman').value.trim();
+            
+            if (!userBass || !userRoman) return;
+            
+            // Compare with Estonian notation
+            const bassCorrect = userBass.toLowerCase() === correctChord.estonianBass.toLowerCase();
+            const romanCorrect = userRoman.toLowerCase() === correctChord.roman.toLowerCase();
+            
+            const isCorrect = bassCorrect && romanCorrect;
+            
+            // Update score
+            score.total++;
+            if (isCorrect) score.correct++;
+            
+            // Show notation after answer
+            document.getElementById('notation-wrapper').classList.remove('hidden');
+            
+            // Show feedback
+            const feedbackEl = document.getElementById('feedback');
+            feedbackEl.className = 'feedback ' + (isCorrect ? 'feedback-correct' : 'feedback-incorrect');
+            feedbackEl.innerHTML = `
+                <h4>${isCorrect ? '✓ Õige!' : '✗ Vale vastus'}</h4>
+                ${!isCorrect ? `<p>Õige vastus: <strong>${correctChord.estonianBass}</strong> + <strong>${correctChord.roman}</strong></p>` : ''}
+            `;
+            feedbackEl.classList.remove('hidden');
+            
+            // Show next button
+            document.getElementById('btn-next').classList.remove('hidden');
+            
+            // Update next button text
+            const nextBtn = document.getElementById('btn-next');
+            if (currentChordIndex < progression.chords.length - 1) {
+                nextBtn.textContent = '→ Järgmine akord';
+            } else if (currentProgression < PROGRESSIONS.length - 1) {
+                nextBtn.textContent = '→ Järgmine järgnevus';
+            } else {
+                nextBtn.textContent = '🎉 Lõpetatud!';
+            }
+            
+            updateUI();
+        }
+
+        function nextChord() {
+            const progression = PROGRESSIONS[currentProgression];
+            
+            if (currentChordIndex < progression.chords.length - 1) {
+                currentChordIndex++;
+            } else if (currentProgression < PROGRESSIONS.length - 1) {
+                currentProgression++;
+                currentChordIndex = 0;
+                renderNotation();
+            } else {
+                alert('Kõik järgnevused on läbitud! Tubli töö! 🎉');
+                return;
+            }
+            
+            // Reset form
+            document.getElementById('input-bass').value = '';
+            document.getElementById('input-roman').value = '';
+            document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('show-answer').classList.add('hidden');
+            document.getElementById('btn-next').classList.add('hidden');
+            document.getElementById('answer-btn-text').textContent = '👁️ Näita vastust';
+            
+            // Hide notation for next chord
+            document.getElementById('notation-wrapper').classList.add('hidden');
+            
+            updateUI();
+        }
+
+        function toggleAnswer() {
+            const answerEl = document.getElementById('show-answer');
+            const btnText = document.getElementById('answer-btn-text');
+            
+            if (answerEl.classList.contains('hidden')) {
+                answerEl.classList.remove('hidden');
+                btnText.textContent = '🙈 Peida vastus';
+            } else {
+                answerEl.classList.add('hidden');
+                btnText.textContent = '👁️ Näita vastust';
+            }
+        }
+
+        function changeMode() {
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            currentMode = mode;
+            
+            // Reset state
+            currentChordIndex = 0;
+            document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('show-answer').classList.add('hidden');
+            document.getElementById('btn-next').classList.add('hidden');
+            
+            if (mode === 'single') {
+                // Single chord mode - no notation
+                document.getElementById('single-mode-form').classList.remove('hidden');
+                document.getElementById('full-mode-form').classList.add('hidden');
+                document.getElementById('input-bass').value = '';
+                document.getElementById('input-roman').value = '';
+                document.getElementById('notation-wrapper').classList.add('hidden');
+            } else if (mode === 'full') {
+                // Full progression mode - no notation
+                document.getElementById('single-mode-form').classList.add('hidden');
+                document.getElementById('full-mode-form').classList.remove('hidden');
+                generateFullModeInputs();
+                document.getElementById('notation-wrapper').classList.add('hidden');
+            } else {
+                // Show notation mode - show notation with full progression inputs
+                document.getElementById('single-mode-form').classList.add('hidden');
+                document.getElementById('full-mode-form').classList.remove('hidden');
+                generateFullModeInputs();
+                document.getElementById('notation-wrapper').classList.remove('hidden');
+            }
+            
+            updateUI();
+        }
+
+        function generateFullModeInputs() {
+            const progression = PROGRESSIONS[currentProgression];
+            const container = document.getElementById('all-chords-inputs');
+            container.innerHTML = '';
+            
+            progression.chords.forEach((chord, index) => {
+                const chordDiv = document.createElement('div');
+                chordDiv.style.cssText = 'display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;';
+                chordDiv.innerHTML = `
+                    <div style="min-width: 80px; font-weight: 600; color: #2c3e50;">Akord ${index + 1}:</div>
+                    <div style="flex: 1; min-width: 150px;">
+                        <input type="text" id="full-bass-${index}" placeholder="Bass (nt C, c, fis)" 
+                               style="width: 100%; padding: 0.75rem; font-size: 1rem; border: 2px solid #bdc3c7; border-radius: 6px;">
+                    </div>
+                    <div style="flex: 1; min-width: 150px;">
+                        <input type="text" id="full-roman-${index}" placeholder="Akord (nt I, IV6)" 
+                               style="width: 100%; padding: 0.75rem; font-size: 1rem; border: 2px solid #bdc3c7; border-radius: 6px;">
+                    </div>
+                `;
+                container.appendChild(chordDiv);
+            });
+        }
+
+        function checkFullProgression() {
+            const progression = PROGRESSIONS[currentProgression];
+            let allCorrect = true;
+            let correctCount = 0;
+            
+            const results = [];
+            
+            progression.chords.forEach((chord, index) => {
+                const userBass = document.getElementById(`full-bass-${index}`).value.trim();
+                const userRoman = document.getElementById(`full-roman-${index}`).value.trim();
+                
+                const bassCorrect = userBass.toLowerCase() === chord.estonianBass.toLowerCase();
+                const romanCorrect = userRoman.toLowerCase() === chord.roman.toLowerCase();
+                const isCorrect = bassCorrect && romanCorrect;
+                
+                if (isCorrect) correctCount++;
+                else allCorrect = false;
+                
+                results.push({
+                    index: index + 1,
+                    isCorrect,
+                    userBass,
+                    userRoman,
+                    correctBass: chord.estonianBass,
+                    correctRoman: chord.roman
+                });
+            });
+            
+            // Update score
+            score.total += progression.chords.length;
+            score.correct += correctCount;
+            
+            // Show feedback
+            const feedbackEl = document.getElementById('feedback');
+            feedbackEl.className = 'feedback ' + (allCorrect ? 'feedback-correct' : 'feedback-incorrect');
+            
+            let feedbackHTML = `<h4>${allCorrect ? '✓ Kõik õiged!' : `✓ Õigeid: ${correctCount}/${progression.chords.length}`}</h4>`;
+            
+            if (!allCorrect) {
+                feedbackHTML += '<div style="margin-top: 1rem;">';
+                results.forEach(r => {
+                    if (!r.isCorrect) {
+                        feedbackHTML += `<p style="margin: 0.5rem 0;">Akord ${r.index}: <strong>${r.correctBass}</strong> + <strong>${r.correctRoman}</strong></p>`;
+                    }
+                });
+                feedbackHTML += '</div>';
+            }
+            
+            feedbackEl.innerHTML = feedbackHTML;
+            feedbackEl.classList.remove('hidden');
+            
+            // Show next button
+            document.getElementById('btn-next').classList.remove('hidden');
+            
+            // Update next button text
+            const nextBtn = document.getElementById('btn-next');
+            if (currentProgression < PROGRESSIONS.length - 1) {
+                nextBtn.textContent = '→ Järgmine järgnevus';
+            } else {
+                nextBtn.textContent = '🎉 Lõpetatud!';
+            }
+            
+            updateUI();
+        }
+
+        function nextProgression() {
+            if (currentProgression < PROGRESSIONS.length - 1) {
+                currentProgression++;
+                currentChordIndex = 0;
+                renderNotation();
+                
+                // Reset
+                document.getElementById('feedback').classList.add('hidden');
+                document.getElementById('show-answer').classList.add('hidden');
+                document.getElementById('btn-next').classList.add('hidden');
+                
+                if (currentMode === 'single') {
+                    document.getElementById('input-bass').value = '';
+                    document.getElementById('input-roman').value = '';
+                    document.getElementById('notation-wrapper').classList.add('hidden');
+                } else if (currentMode === 'full') {
+                    generateFullModeInputs();
+                    document.getElementById('notation-wrapper').classList.add('hidden');
+                } else {
+                    // show-notation mode
+                    generateFullModeInputs();
+                    document.getElementById('notation-wrapper').classList.remove('hidden');
+                }
+                
+                updateUI();
+            } else {
+                alert('Kõik järgnevused on läbitud! Tubli töö! 🎉');
+            }
+        }
+
+        function handleNext() {
+            if (currentMode === 'single') {
+                nextChord();
+            } else {
+                // Both 'full' and 'show-notation' use full progression navigation
+                nextProgression();
+            }
+        }
+    </script>
+</body>
+</html>
